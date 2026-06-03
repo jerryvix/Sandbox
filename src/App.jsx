@@ -17,6 +17,7 @@ export default function App() {
   const [queue, setQueue] = useState([]);
   const [search, setSearch] = useState('');
   const [filters, setFilters] = useState({ platform: 'all', contentType: 'all', sentiment: 'all' });
+  const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [showSettings, setShowSettings] = useState(false);
   const [showExport, setShowExport] = useState(false);
 
@@ -89,13 +90,32 @@ export default function App() {
 
   const handleDelete = (id) => {
     setVideos(deleteVideo(id));
+    setSelectedIds((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
   };
 
   const handleClearAll = () => {
     if (!confirm('Delete all videos from your database? This cannot be undone.')) return;
     clearVideos();
     setVideos([]);
+    setSelectedIds(new Set());
   };
+
+  const toggleSelect = (id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAll = (ids) => setSelectedIds(new Set(ids));
+  const clearSelection = () => setSelectedIds(new Set());
 
   const stats = useMemo(
     () => ({
@@ -156,6 +176,10 @@ export default function App() {
             search={search}
             onSearch={setSearch}
             onDelete={handleDelete}
+            selectedIds={selectedIds}
+            onToggleSelect={toggleSelect}
+            onSelectAll={selectAll}
+            onClearSelection={clearSelection}
           />
         )}
       </main>
@@ -178,7 +202,13 @@ export default function App() {
 
       {showExport && (
         <ExportModal
-          videos={filteredVideos.length ? filteredVideos : videos}
+          videos={
+            selectedIds.size > 0
+              ? videos.filter((v) => selectedIds.has(v.id))
+              : filteredVideos.length
+                ? filteredVideos
+                : videos
+          }
           onClose={() => setShowExport(false)}
         />
       )}

@@ -14,7 +14,7 @@ const CONFIDENCE_COLOR = {
   low: 'bg-red-500/15 text-red-300 border-red-500/30',
 };
 
-export default function VideoCard({ video, onDelete }) {
+export default function VideoCard({ video, onDelete, selected, onToggleSelect }) {
   const [showSummary, setShowSummary] = useState(true);
   const [showPoints, setShowPoints] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -27,7 +27,11 @@ export default function VideoCard({ video, onDelete }) {
   };
 
   return (
-    <article className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col">
+    <article
+      className={`bg-slate-900 border rounded-xl overflow-hidden flex flex-col transition ${
+        selected ? 'border-indigo-500 ring-1 ring-indigo-500/40' : 'border-slate-800'
+      }`}
+    >
       <div className="aspect-video bg-slate-800 relative">
         {video.thumbnailUrl ? (
           <img src={video.thumbnailUrl} alt="" className="w-full h-full object-cover" />
@@ -39,6 +43,18 @@ export default function VideoCard({ video, onDelete }) {
         <span className="absolute top-2 left-2 text-xs px-2 py-0.5 rounded bg-black/70 capitalize">
           {video.platform}
         </span>
+        <label
+          className="absolute top-2 right-2 flex items-center gap-1.5 bg-black/70 px-2 py-1 rounded cursor-pointer text-xs select-none"
+          title="Select for export"
+        >
+          <input
+            type="checkbox"
+            checked={!!selected}
+            onChange={() => onToggleSelect?.(video.id)}
+            className="accent-indigo-500 w-3.5 h-3.5"
+          />
+          <span>{selected ? 'Selected' : 'Select'}</span>
+        </label>
       </div>
 
       <div className="p-4 flex-1 flex flex-col gap-3">
