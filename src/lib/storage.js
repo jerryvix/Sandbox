@@ -96,9 +96,21 @@ export function setVideoCollections(videoId, collectionIds) {
 }
 
 export function loadKeys() {
+  const envAnthropic = (import.meta.env?.VITE_ANTHROPIC_KEY || '').trim();
+  const envApify = (import.meta.env?.VITE_APIFY_KEY || '').trim();
+  const storedAnthropic = localStorage.getItem(ANTHROPIC_KEY) || '';
+  const storedApify = localStorage.getItem(APIFY_KEY) || '';
+
+  if (envAnthropic && envAnthropic !== storedAnthropic) {
+    localStorage.setItem(ANTHROPIC_KEY, envAnthropic);
+  }
+  if (envApify && envApify !== storedApify) {
+    localStorage.setItem(APIFY_KEY, envApify);
+  }
+
   return {
-    anthropic: localStorage.getItem(ANTHROPIC_KEY) || '',
-    apify: localStorage.getItem(APIFY_KEY) || '',
+    anthropic: envAnthropic || storedAnthropic,
+    apify: envApify || storedApify,
   };
 }
 
