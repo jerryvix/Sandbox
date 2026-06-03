@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { buildExport, copyToClipboard, downloadText } from '../lib/export.js';
 
-export default function ExportModal({ videos, onClose }) {
+export default function ExportModal({ videos, collections = [], onClose }) {
   const [copied, setCopied] = useState(false);
-  const text = buildExport(videos);
+  const text = buildExport(videos, collections);
 
   const copy = async () => {
     await copyToClipboard(text);

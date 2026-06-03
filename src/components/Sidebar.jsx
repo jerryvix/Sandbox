@@ -2,17 +2,39 @@ export default function Sidebar({
   stats,
   filters,
   setFilters,
+  collections,
+  activeCollectionId,
+  onSelectCollection,
+  onNewCollection,
+  onDeleteCollection,
   onOpenSettings,
   onOpenExport,
   onClearAll,
+  onClose,
 }) {
+  const promptNew = () => {
+    const name = window.prompt('Name your collection (e.g. "Bali 2025"):');
+    if (name && name.trim()) onNewCollection(name.trim());
+  };
+
   return (
-    <aside className="w-full md:w-64 shrink-0 bg-slate-900 border-r border-slate-800 p-5 flex flex-col gap-5">
-      <div>
-        <h1 className="text-lg font-bold tracking-tight">
-          <span className="text-indigo-400">▷</span> Video Synthesizer
-        </h1>
-        <p className="text-xs text-slate-500 mt-1">Paste links. Get intelligence.</p>
+    <aside className="w-full md:w-64 shrink-0 bg-slate-900 border-r border-slate-800 p-5 flex flex-col gap-5 h-full overflow-y-auto">
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-lg font-bold tracking-tight">
+            <span className="text-indigo-400">▷</span> Video Synthesizer
+          </h1>
+          <p className="text-xs text-slate-500 mt-1">Paste links. Get intelligence.</p>
+        </div>
+        {onClose && (
+          <button
+            onClick={onClose}
+            className="md:hidden text-slate-400 hover:text-slate-100 text-xl px-2 -mt-1"
+            aria-label="Close menu"
+          >
+            ✕
+          </button>
+        )}
       </div>
 
       <div className="bg-slate-800/50 rounded-md p-3 text-sm">
@@ -32,6 +54,63 @@ export default function Sidebar({
           <span className="text-slate-400">Instagram</span>
           <span>{stats.instagram}</span>
         </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs uppercase tracking-wide text-slate-400">Collections</span>
+          <button
+            onClick={promptNew}
+            className="text-xs text-indigo-400 hover:text-indigo-300 font-medium"
+          >
+            + New
+          </button>
+        </div>
+        <ul className="space-y-1">
+          <li>
+            <button
+              onClick={() => onSelectCollection(null)}
+              className={`w-full text-left px-2 py-1.5 rounded text-sm flex justify-between items-center ${
+                activeCollectionId === null
+                  ? 'bg-indigo-600/20 text-indigo-200'
+                  : 'hover:bg-slate-800 text-slate-300'
+              }`}
+            >
+              <span>All videos</span>
+              <span className="text-xs text-slate-500">{stats.total}</span>
+            </button>
+          </li>
+          {collections.length === 0 && (
+            <li className="text-xs text-slate-500 px-2 py-1">No collections yet.</li>
+          )}
+          {collections.map((c) => (
+            <li key={c.id} className="group flex items-center gap-1">
+              <button
+                onClick={() => onSelectCollection(c.id)}
+                className={`flex-1 text-left px-2 py-1.5 rounded text-sm flex justify-between items-center ${
+                  activeCollectionId === c.id
+                    ? 'bg-indigo-600/20 text-indigo-200'
+                    : 'hover:bg-slate-800 text-slate-300'
+                }`}
+                title={c.name}
+              >
+                <span className="truncate">{c.name}</span>
+                <span className="text-xs text-slate-500 ml-2">{stats.byCollection?.[c.id] || 0}</span>
+              </button>
+              <button
+                onClick={() => {
+                  if (confirm(`Delete collection "${c.name}"? Videos themselves are kept.`)) {
+                    onDeleteCollection(c.id);
+                  }
+                }}
+                className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 text-xs px-1"
+                aria-label={`Delete collection ${c.name}`}
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="space-y-3">

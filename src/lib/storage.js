@@ -1,10 +1,12 @@
 const VIDEOS_KEY = 'vsynth_videos';
+const COLLECTIONS_KEY = 'vsynth_collections';
 const ANTHROPIC_KEY = 'vsynth_anthropic_key';
 const APIFY_KEY = 'vsynth_apify_key';
 
 export function loadVideos() {
   try {
-    return JSON.parse(localStorage.getItem(VIDEOS_KEY) || '[]');
+    const list = JSON.parse(localStorage.getItem(VIDEOS_KEY) || '[]');
+    return list.map((v) => ({ collectionIds: [], ...v }));
   } catch {
     return [];
   }
@@ -16,7 +18,13 @@ export function saveVideos(videos) {
 
 export function addVideo(video) {
   const videos = loadVideos();
-  videos.unshift(video);
+  videos.unshift({ collectionIds: [], ...video });
+  saveVideos(videos);
+  return videos;
+}
+
+export function updateVideo(updated) {
+  const videos = loadVideos().map((v) => (v.id === updated.id ? { ...v, ...updated } : v));
   saveVideos(videos);
   return videos;
 }
@@ -33,6 +41,49 @@ export function clearVideos() {
 
 export function hasUrl(url) {
   return loadVideos().some((v) => v.url === url);
+}
+
+export function loadCollections() {
+  try {
+    return JSON.parse(localStorage.getItem(COLLECTIONS_KEY) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+export function saveCollections(collections) {
+  localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(collections));
+}
+
+export function addCollection(name) {
+  const trimmed = name.trim();
+  if (!trimmed) return loadCollections();
+  const collections = loadCollections();
+  if (collections.some((c) => c.name.toLowerCase() === trimmed.toLowerCase())) {
+    return collections;
+  }
+  const next = [...collections, { id: crypto.randomUUID(), name: trimmed, createdAt: new Date().toISOString() }];
+  saveCollections(next);
+  return next;
+}
+
+export function deleteCollection(id) {
+  const collections = loadCollections().filter((c) => c.id !== id);
+  saveCollections(collections);
+  const videos = loadVideos().map((v) => ({
+    ...v,
+    collectionIds: (v.collectionIds || []).filter((cid) => cid !== id),
+  }));
+  saveVideos(videos);
+  return { collections, videos };
+}
+
+export function setVideoCollections(videoId, collectionIds) {
+  const videos = loadVideos().map((v) =>
+    v.id === videoId ? { ...v, collectionIds: [...collectionIds] } : v,
+  );
+  saveVideos(videos);
+  return videos;
 }
 
 export function loadKeys() {

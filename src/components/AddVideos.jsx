@@ -26,12 +26,12 @@ export default function AddVideos({ queue, onSubmit }) {
     <div className="space-y-6">
       <section className="bg-slate-900 border border-slate-800 rounded-xl p-5">
         <h3 className="font-semibold mb-3">Add a single video</h3>
-        <div className="flex gap-2">
+        <div className="flex flex-col sm:flex-row gap-2">
           <input
             value={single}
             onChange={(e) => setSingle(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && submitSingle()}
-            placeholder="Paste a YouTube or TikTok URL"
+            placeholder="Paste a YouTube, TikTok, or Instagram URL"
             className="flex-1 bg-slate-800 border border-slate-700 rounded-md px-3 py-2 focus:border-indigo-500 outline-none"
           />
           <button
@@ -60,7 +60,7 @@ export default function AddVideos({ queue, onSubmit }) {
         <div className="mt-3 flex justify-end">
           <button
             onClick={submitBulk}
-            className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 font-medium"
+            className="px-4 py-2 rounded-md bg-indigo-600 hover:bg-indigo-500 font-medium w-full sm:w-auto"
           >
             Analyze All
           </button>
