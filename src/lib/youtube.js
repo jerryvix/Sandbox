@@ -1,5 +1,22 @@
-import { YoutubeTranscript } from 'youtube-transcript';
 import { extractYouTubeId, youtubeThumbnail } from './platform.js';
+
+async function fetchTranscript(videoId) {
+  const res = await fetch(`/api/transcript?videoId=${encodeURIComponent(videoId)}`);
+  if (!res.ok) {
+    let message = 'No transcript found. Video may have captions disabled.';
+    try {
+      const body = await res.json();
+      if (body?.error) message = body.error;
+    } catch {
+      // ignore
+    }
+    const err = new Error(message);
+    err.status = res.status;
+    throw err;
+  }
+  const data = await res.json();
+  return data.text || '';
+}
 
 export async function ingestYouTube(url) {
   const videoId = extractYouTubeId(url);
@@ -8,8 +25,7 @@ export async function ingestYouTube(url) {
   let transcriptText = '';
   let transcriptError = null;
   try {
-    const segments = await YoutubeTranscript.fetchTranscript(videoId);
-    transcriptText = segments.map((s) => s.text).join(' ');
+    transcriptText = await fetchTranscript(videoId);
   } catch (err) {
     transcriptError = err;
   }
@@ -31,7 +47,7 @@ export async function ingestYouTube(url) {
 
   if (!transcriptText) {
     if (!title && !description) {
-      throw new Error('No transcript found. Video may have captions disabled.');
+      throw transcriptError || new Error('No transcript found. Video may have captions disabled.');
     }
     transcriptText = `[No transcript available]\nTitle: ${title}\n${description}`;
   }
