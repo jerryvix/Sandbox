@@ -37,7 +37,7 @@ export default function VideoCard({ video, onDelete, selected, onToggleSelect })
           <img src={video.thumbnailUrl} alt="" className="w-full h-full object-cover" />
         ) : (
           <div className="w-full h-full flex items-center justify-center text-4xl text-slate-600">
-            {video.platform === 'youtube' ? '▶' : '♪'}
+            {video.platform === 'youtube' ? '▶' : video.platform === 'instagram' ? '◫' : '♪'}
           </div>
         )}
         <span className="absolute top-2 left-2 text-xs px-2 py-0.5 rounded bg-black/70 capitalize">

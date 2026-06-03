@@ -28,6 +28,10 @@ export default function Sidebar({
           <span className="text-slate-400">TikTok</span>
           <span>{stats.tiktok}</span>
         </div>
+        <div className="flex justify-between mt-1">
+          <span className="text-slate-400">Instagram</span>
+          <span>{stats.instagram}</span>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -39,6 +43,7 @@ export default function Sidebar({
             ['all', 'All'],
             ['youtube', 'YouTube'],
             ['tiktok', 'TikTok'],
+            ['instagram', 'Instagram'],
           ]}
         />
         <FilterSelect

@@ -8,6 +8,7 @@ import { addVideo, clearVideos, deleteVideo, hasUrl, loadKeys, loadVideos } from
 import { detectPlatform } from './lib/platform.js';
 import { ingestYouTube } from './lib/youtube.js';
 import { ingestTikTok } from './lib/tiktok.js';
+import { ingestInstagram } from './lib/instagram.js';
 import { analyzeContent } from './lib/anthropic.js';
 
 export default function App() {
@@ -58,7 +59,8 @@ export default function App() {
           return;
         }
         updateQueueItem(id, { status: 'Scraping via Apify...' });
-        const r = await ingestTikTok(url, keys.apify, (s) => updateQueueItem(id, { status: s }));
+        const ingest = platform === 'tiktok' ? ingestTikTok : ingestInstagram;
+        const r = await ingest(url, keys.apify, (s) => updateQueueItem(id, { status: s }));
         raw = r.rawContent;
         thumbnailUrl = r.thumbnailUrl;
       }
@@ -122,6 +124,7 @@ export default function App() {
       total: videos.length,
       youtube: videos.filter((v) => v.platform === 'youtube').length,
       tiktok: videos.filter((v) => v.platform === 'tiktok').length,
+      instagram: videos.filter((v) => v.platform === 'instagram').length,
     }),
     [videos],
   );

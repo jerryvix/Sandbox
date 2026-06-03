@@ -4,6 +4,7 @@ export function detectPlatform(url) {
     const host = u.hostname.replace(/^www\./, '');
     if (host === 'youtube.com' || host === 'm.youtube.com' || host === 'youtu.be') return 'youtube';
     if (host === 'tiktok.com' || host.endsWith('.tiktok.com')) return 'tiktok';
+    if (host === 'instagram.com' || host.endsWith('.instagram.com')) return 'instagram';
     return 'unsupported';
   } catch {
     return 'unsupported';
