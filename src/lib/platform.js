@@ -24,7 +24,15 @@ export function extractYouTubeId(url) {
 }
 
 export function youtubeThumbnail(id) {
-  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : '';
+  return id ? `https://img.youtube.com/vi/${id}/mqdefault.jpg` : '';
+}
+
+export function thumbnailFor(video) {
+  if (video.platform === 'youtube') {
+    const id = extractYouTubeId(video.url);
+    return youtubeThumbnail(id);
+  }
+  return video.thumbnailUrl || '';
 }
 
 export function sleep(ms) {

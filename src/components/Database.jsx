@@ -1,10 +1,20 @@
 import VideoCard from './VideoCard.jsx';
 
+const SORT_OPTIONS = [
+  ['newest', 'Newest first'],
+  ['oldest', 'Oldest first'],
+  ['youtube', 'YouTube first'],
+  ['tiktok', 'TikTok first'],
+  ['starred', 'Starred first'],
+  ['alpha', 'Alphabetical (A–Z)'],
+];
+
 export default function Database({
   videos,
   search,
   onSearch,
   onDelete,
+  onBulkDelete,
   selectedIds,
   onToggleSelect,
   onSelectAll,
@@ -15,6 +25,9 @@ export default function Database({
   onSetVideoCollections,
   onReanalyze,
   reanalyzingIds,
+  onToggleStar,
+  sortBy,
+  onSortChange,
 }) {
   const selectedCount = selectedIds.size;
   const allSelected = videos.length > 0 && videos.every((v) => selectedIds.has(v.id));
@@ -22,6 +35,12 @@ export default function Database({
   const activeCollection = activeCollectionId
     ? collections.find((c) => c.id === activeCollectionId)
     : null;
+
+  const handleBulkDelete = () => {
+    if (selectedCount === 0) return;
+    if (!confirm(`Delete ${selectedCount} video${selectedCount === 1 ? '' : 's'}? This cannot be undone.`)) return;
+    onBulkDelete([...selectedIds]);
+  };
 
   return (
     <div className="space-y-4">
@@ -61,6 +80,21 @@ export default function Database({
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="text-xs text-slate-400">Sort:</label>
+        <select
+          value={sortBy}
+          onChange={(e) => onSortChange(e.target.value)}
+          className="bg-slate-800 border border-slate-700 rounded-md px-2 py-1.5 text-sm focus:border-indigo-500 outline-none"
+        >
+          {SORT_OPTIONS.map(([v, l]) => (
+            <option key={v} value={v}>
+              {l}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {videos.length > 0 && (
         <div className="flex flex-wrap items-center gap-2 bg-slate-900 border border-slate-800 rounded-md px-3 py-2">
           <span className="text-sm text-slate-300">
@@ -70,7 +104,7 @@ export default function Database({
                 ? `Viewing "${activeCollection.name}"`
                 : 'Select videos to limit export, or export all.'}
           </span>
-          <div className="flex gap-1.5 ml-auto">
+          <div className="flex flex-wrap gap-1.5 ml-auto">
             <button
               onClick={() => onSelectAll(videos.map((v) => v.id))}
               disabled={allSelected}
@@ -84,6 +118,13 @@ export default function Database({
               className="px-3 py-1 rounded text-xs bg-slate-800 hover:bg-slate-700 border border-slate-700 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Clear selection
+            </button>
+            <button
+              onClick={handleBulkDelete}
+              disabled={selectedCount === 0}
+              className="px-3 py-1 rounded text-xs bg-red-900/40 hover:bg-red-900/70 text-red-200 border border-red-900/60 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              Delete selected
             </button>
           </div>
         </div>
@@ -108,6 +149,7 @@ export default function Database({
               onSetCollections={onSetVideoCollections}
               onReanalyze={onReanalyze}
               reanalyzing={reanalyzingIds.has(v.id)}
+              onToggleStar={onToggleStar}
               query={trimmed}
             />
           ))}

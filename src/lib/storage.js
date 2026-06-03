@@ -2,11 +2,13 @@ const VIDEOS_KEY = 'vsynth_videos';
 const COLLECTIONS_KEY = 'vsynth_collections';
 const ANTHROPIC_KEY = 'vsynth_anthropic_key';
 const APIFY_KEY = 'vsynth_apify_key';
+const EXPORT_CONTEXT_KEY = 'vsynth_export_context';
+const EXPORT_FORMAT_KEY = 'vsynth_export_format';
 
 export function loadVideos() {
   try {
     const list = JSON.parse(localStorage.getItem(VIDEOS_KEY) || '[]');
-    return list.map((v) => ({ collectionIds: [], ...v }));
+    return list.map((v) => ({ collectionIds: [], starred: false, resourceLinks: [], ...v }));
   } catch {
     return [];
   }
@@ -18,7 +20,7 @@ export function saveVideos(videos) {
 
 export function addVideo(video) {
   const videos = loadVideos();
-  videos.unshift({ collectionIds: [], ...video });
+  videos.unshift({ collectionIds: [], starred: false, resourceLinks: [], ...video });
   saveVideos(videos);
   return videos;
 }
@@ -31,6 +33,13 @@ export function updateVideo(updated) {
 
 export function deleteVideo(id) {
   const videos = loadVideos().filter((v) => v.id !== id);
+  saveVideos(videos);
+  return videos;
+}
+
+export function deleteVideos(ids) {
+  const set = new Set(ids);
+  const videos = loadVideos().filter((v) => !set.has(v.id));
   saveVideos(videos);
   return videos;
 }
@@ -96,4 +105,20 @@ export function loadKeys() {
 export function saveKeys({ anthropic, apify }) {
   if (anthropic !== undefined) localStorage.setItem(ANTHROPIC_KEY, anthropic);
   if (apify !== undefined) localStorage.setItem(APIFY_KEY, apify);
+}
+
+export function loadExportContext() {
+  return localStorage.getItem(EXPORT_CONTEXT_KEY) || '';
+}
+
+export function saveExportContext(text) {
+  localStorage.setItem(EXPORT_CONTEXT_KEY, text || '');
+}
+
+export function loadExportFormat() {
+  return localStorage.getItem(EXPORT_FORMAT_KEY) || 'text';
+}
+
+export function saveExportFormat(format) {
+  localStorage.setItem(EXPORT_FORMAT_KEY, format);
 }

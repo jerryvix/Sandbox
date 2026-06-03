@@ -10,6 +10,7 @@ import {
   clearVideos,
   deleteCollection,
   deleteVideo,
+  deleteVideos,
   hasUrl,
   loadCollections,
   loadKeys,
@@ -21,7 +22,7 @@ import { detectPlatform } from './lib/platform.js';
 import { ingestYouTube } from './lib/youtube.js';
 import { ingestTikTok } from './lib/tiktok.js';
 import { ingestInstagram } from './lib/instagram.js';
-import { analyzeContent } from './lib/anthropic.js';
+import { analyzeContent, generateResourceLinks } from './lib/anthropic.js';
 
 export default function App() {
   const [videos, setVideos] = useState(() => loadVideos());
@@ -34,6 +35,7 @@ export default function App() {
   const [activeCollectionId, setActiveCollectionId] = useState(null);
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [reanalyzingIds, setReanalyzingIds] = useState(() => new Set());
+  const [sortBy, setSortBy] = useState('newest');
   const [showSettings, setShowSettings] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -44,6 +46,21 @@ export default function App() {
 
   const updateQueueItem = (id, patch) => {
     setQueue((q) => q.map((it) => (it.id === id ? { ...it, ...patch } : it)));
+  };
+
+  const fetchAndStoreLinks = async (videoId, analysis, anthropicKey) => {
+    try {
+      const links = await generateResourceLinks(analysis, anthropicKey);
+      if (!links.length) return;
+      setVideos((prev) => {
+        const target = prev.find((v) => v.id === videoId);
+        if (!target) return prev;
+        const updated = { ...target, resourceLinks: links };
+        return updateVideo(updated);
+      });
+    } catch {
+      // best-effort; analysis already saved
+    }
   };
 
   const processUrl = async (url) => {
@@ -93,10 +110,14 @@ export default function App() {
         analysis: { ...analysis, platform },
         thumbnailUrl: thumbnailUrl || '',
         collectionIds: [],
+        starred: false,
+        resourceLinks: [],
       };
-      const next = addVideo(video);
-      setVideos(next);
-      updateQueueItem(id, { state: 'done', status: 'Saved' });
+      setVideos(addVideo(video));
+      updateQueueItem(id, { state: 'done', status: 'Saved. Generating links in background...' });
+      fetchAndStoreLinks(id, video.analysis, keys.anthropic).then(() =>
+        updateQueueItem(id, { state: 'done', status: 'Saved' }),
+      );
     } catch (err) {
       updateQueueItem(id, { state: 'error', status: err.message || 'Failed' });
     }
@@ -115,6 +136,11 @@ export default function App() {
       next.delete(id);
       return next;
     });
+  };
+
+  const handleBulkDelete = (ids) => {
+    setVideos(deleteVideos(ids));
+    setSelectedIds(new Set());
   };
 
   const handleClearAll = () => {
@@ -151,6 +177,12 @@ export default function App() {
     setVideos(setVideoCollections(videoId, collectionIds));
   };
 
+  const handleToggleStar = (id) => {
+    const v = videos.find((x) => x.id === id);
+    if (!v) return;
+    setVideos(updateVideo({ ...v, starred: !v.starred }));
+  };
+
   const handleReanalyze = async (id) => {
     const v = videos.find((x) => x.id === id);
     if (!v) return;
@@ -161,8 +193,13 @@ export default function App() {
     setReanalyzingIds((prev) => new Set(prev).add(id));
     try {
       const analysis = await analyzeContent(v.rawContent, v.platform, keys.anthropic);
-      const updated = { ...v, analysis: { ...analysis, platform: v.platform } };
+      const updated = {
+        ...v,
+        analysis: { ...analysis, platform: v.platform },
+        resourceLinks: [],
+      };
       setVideos(updateVideo(updated));
+      fetchAndStoreLinks(id, updated.analysis, keys.anthropic);
     } catch (err) {
       alert(err.message || 'Re-analysis failed.');
     } finally {
@@ -220,11 +257,42 @@ export default function App() {
     });
   }, [videos, filters, search, activeCollectionId]);
 
+  const sortedVideos = useMemo(() => {
+    const arr = [...filteredVideos];
+    const byNewest = (a, b) => (b.addedAt || '').localeCompare(a.addedAt || '');
+    switch (sortBy) {
+      case 'oldest':
+        return arr.sort((a, b) => (a.addedAt || '').localeCompare(b.addedAt || ''));
+      case 'youtube':
+        return arr.sort((a, b) => {
+          const d = (b.platform === 'youtube' ? 1 : 0) - (a.platform === 'youtube' ? 1 : 0);
+          return d !== 0 ? d : byNewest(a, b);
+        });
+      case 'tiktok':
+        return arr.sort((a, b) => {
+          const d = (b.platform === 'tiktok' ? 1 : 0) - (a.platform === 'tiktok' ? 1 : 0);
+          return d !== 0 ? d : byNewest(a, b);
+        });
+      case 'starred':
+        return arr.sort((a, b) => {
+          const d = (b.starred ? 1 : 0) - (a.starred ? 1 : 0);
+          return d !== 0 ? d : byNewest(a, b);
+        });
+      case 'alpha':
+        return arr.sort((a, b) =>
+          (a.analysis?.title || '').localeCompare(b.analysis?.title || '', undefined, { sensitivity: 'base' }),
+        );
+      case 'newest':
+      default:
+        return arr.sort(byNewest);
+    }
+  }, [filteredVideos, sortBy]);
+
   const exportVideos =
     selectedIds.size > 0
       ? videos.filter((v) => selectedIds.has(v.id))
-      : filteredVideos.length
-        ? filteredVideos
+      : sortedVideos.length
+        ? sortedVideos
         : videos;
 
   return (
@@ -292,10 +360,11 @@ export default function App() {
             <AddVideos queue={queue} onSubmit={handleSubmit} />
           ) : (
             <Database
-              videos={filteredVideos}
+              videos={sortedVideos}
               search={search}
               onSearch={setSearch}
               onDelete={handleDelete}
+              onBulkDelete={handleBulkDelete}
               selectedIds={selectedIds}
               onToggleSelect={toggleSelect}
               onSelectAll={selectAll}
@@ -306,6 +375,9 @@ export default function App() {
               onSetVideoCollections={handleSetVideoCollections}
               onReanalyze={handleReanalyze}
               reanalyzingIds={reanalyzingIds}
+              onToggleStar={handleToggleStar}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
             />
           )}
         </div>
